@@ -16,9 +16,9 @@ private:
     bool _run = false;
 
  public:
+    // Count game time in seconds
     void count()
     {
-        //Serial.printf("%i %i %i %i %i", _totalTimeSecs, _GameTimeSecs, _pauzeTimeSecs, _run, _pauzed);
         if (true == _run) {
             if (_totalTimeSecs < _GameTimeSecs) {
                 _totalTimeSecs++;
@@ -26,27 +26,32 @@ private:
         }
     }
 
+    // Reset game time, stop when running.
     void reset()
     {
         _totalTimeSecs = 0;
         _run = false;
     }
 
+    // Set gametime running
     void run()
     {
         _run = true;
     }
 
+    // Stop gametime running
     void stop()
     {
         _run = false;
     }
 
+    // return bool on running game time
     bool isRunning()
     {
         return _run;
     }
 
+    // Increase gametime by 5 minutes (300sec)
     int upGameTime()
     {
         _GameTimeSecs += 5*60;
@@ -56,6 +61,7 @@ private:
         return _GameTimeSecs;
     }
 
+    // return int minutes part of Total gametime or Running game time 
     int getMinute(gametimeTime whichTime=GAME_TIME)
     {
         if (GAME_TIME == whichTime)
@@ -66,6 +72,7 @@ private:
         return -1;
     }
 
+    // return int seconds part of Total gametime or Running game time 
     int getSecond(gametimeTime whichTime=GAME_TIME)
     {
         if (GAME_TIME == whichTime)
@@ -76,6 +83,7 @@ private:
         return -1;
     }
 
+    // return string Total gametime or Running game time with ':' separator
     String getTimeString(gametimeTime whichTime=GAME_TIME)
     {
         String seconds = String(getSecond(whichTime));
@@ -85,6 +93,7 @@ private:
         return String(getMinute(whichTime)) + ":" + seconds;
     }
 
+    // return int how much game time remains
     int getGameTimeRemaining()
     {
         return _GameTimeSecs - _totalTimeSecs;

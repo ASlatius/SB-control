@@ -38,7 +38,7 @@
 #define SCREEN_WIDTH        128
 #define SCREEN_HEIGHT       64
 
-uint8_t keys=0, prev_keys=0;
+uint8_t keys=0;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 SoftwareSerial HC12Serial(2,3);
 HC12 hc12(&HC12Serial, 13, 9600);
@@ -46,6 +46,9 @@ GameScore gameScore;
 GameTime gameTime;
 uint32_t longpress_rst_time=0, longpress_rst_score=0;
 
+/******************************************************************************
+ * Read all inputs to see if user pressed a key
+ *****************************************************************************/
 int scanKeys()
 {
     if (0 == digitalRead(D4)) {
@@ -56,7 +59,6 @@ int scanKeys()
         //Serial.println("D9-RT");
         keys |= RESET_TIME;
     }
-
     if (0 == digitalRead(D5)) {
         //Serial.println("D5-G-");
         keys |= SCORE_GUEST_MIN;
@@ -81,14 +83,13 @@ int scanKeys()
         //Serial.println("D11-TSE");
         keys |= TIME_SET;
     }
-
     Serial.print(keys);
-    Serial.print(":");
-    Serial.println(prev_keys);
-
     return keys;
 }
 
+/******************************************************************************
+ * Handle all actions from the scanned keys.
+ *****************************************************************************/
 void handleKeys()
 {
     if (keys & SCORE_HOME_PLUS) {
@@ -110,12 +111,14 @@ void handleKeys()
             gameTime.stop();
         }
     }
+    // Only change game time if not running
     if (keys & TIME_SET) {
         if (false == gameTime.isRunning())
         {
             gameTime.upGameTime();
         }
     }
+    // Make user press reset key longer before reset is done
     if (keys & RESET_SCORE) {
         longpress_rst_score++;
         if (longpress_rst_score >= LONGPRESS) {
@@ -125,6 +128,7 @@ void handleKeys()
     else if (longpress_rst_score > 0) {
         longpress_rst_score = 0;
     }
+    // Make user press reset key longer before reset is done
     if (keys & RESET_TIME) {
         longpress_rst_time++;
         if (longpress_rst_time >= LONGPRESS) {
@@ -135,13 +139,16 @@ void handleKeys()
         longpress_rst_time = 0;
     }
     
+    // Filter for key bounce - bad way to do proper key bounce filtering. Works though... 
     if ((keys & ~(RESET_SCORE|RESET_TIME)) > 0) {
-        //Bad way to do proper key bounce filtering. Works though... 
         delay(250);
     }
     keys = 0;
 }
 
+/******************************************************************************
+ * Show the total game time, running game time and score on display.
+ *****************************************************************************/
 void updateDisplay()
 {
     String text;
@@ -172,14 +179,20 @@ void updateDisplay()
     display.display();    
 }
 
+/******************************************************************************
+ * Interrupt service routine. Called every second, count time 
+ *****************************************************************************/
 ISR(TIMER1_COMPA_vect)
 {
     gameTime.count();
 }
 
+/******************************************************************************
+ * Initialize hardware etc.
+ *****************************************************************************/
 void setup() {
-    pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(D4, INPUT_PULLUP);
+    pinMode(LED_BUILTIN, OUTPUT);       // on board LED
+    pinMode(D4, INPUT_PULLUP);          // Keys
     pinMode(D5, INPUT_PULLUP);
     pinMode(D6, INPUT_PULLUP);
     pinMode(D7, INPUT_PULLUP);
@@ -187,7 +200,7 @@ void setup() {
     pinMode(D9, INPUT_PULLUP);
     pinMode(D10, INPUT_PULLUP);
     pinMode(D11, INPUT_PULLUP);
-    pinMode(D12, OUTPUT);
+    pinMode(D12, OUTPUT);               // "Gestart" LED
 
     noInterrupts();                     // disable all interrupts
     TCCR1A = 0;
@@ -201,23 +214,29 @@ void setup() {
 
     hc12.begin();
     Serial.begin(9600);                 // Initialize Serial connectioan
-    Wire.begin();
-
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    Wire.begin();                       // Initialize I2C
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // Initialize display
     display.clearDisplay();
 }
 
+/******************************************************************************
+ * Main loop
+ *****************************************************************************/
 void loop() {
+
     digitalWrite(LED_BUILTIN, !(digitalRead(LED_BUILTIN)));
     if (false != gameTime.isRunning()) {
         digitalWrite(D12, true);
     } else {
         digitalWrite(D12, false);
     }
-
+    
+    // Read and handle keys, update display.
     scanKeys();
     updateDisplay();
     handleKeys();
+
+    // Send out data to display on HC12
     commSendDisplayData(hc12, gameScore, gameTime);
 
     delay(30);  //to make loop ~100ms

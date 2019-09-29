@@ -15,11 +15,13 @@ private:
     int _guestScore = 0;
 
  public:
+    // reset score counters
     void reset()
     {
         _homeScore = _guestScore = 0;
     }
 
+    // increment score for Home or Guest
     int incScore(gamescoreScore which=SCORE_HOME)
     {
         if (SCORE_HOME == which) {
@@ -34,6 +36,7 @@ private:
         }
     }
 
+    // decrement score for Home or Guest
     int decScore(gamescoreScore which=SCORE_HOME)
     {
         if (SCORE_HOME == which) {
@@ -48,6 +51,7 @@ private:
         }
     }
 
+    // return string Home or Guest score
     String getScore(gamescoreScore which=SCORE_HOME)
     {
         if (SCORE_HOME == which)
