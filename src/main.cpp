@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <Adafruit_I2CDevice.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Fonts/FreeSans9pt7b.h>
@@ -179,6 +180,7 @@ void updateDisplay()
     display.display();
 }
 
+
 void showMeko74()
 {
     display.setFont(&FreeSans9pt7b);
@@ -187,8 +189,60 @@ void showMeko74()
     display.println("MEKO '74"); 
     display.display();
 
-    delay(2000);
+    delay(1000);
 }
+
+void showBattery()
+{
+    int adc=0, val=0;
+
+    /*  NiMH is 1.6 max right after charging
+        The voltages; 
+            1.5 volts - fully charged, 
+            1.25 volts - 50% charged, 
+            1.0 volts - almost fully discharged. 
+        But a NiMH battery stays at about 1.2 volts until it is nearly 
+        completely discharged
+       
+        With 5 cells anything over 5 * 1.4 (7V) is considered 100%
+        The Arduino will work down to ~2.8V, however since 1V is empty we'll 
+        set 0% at 1V * 5 = 5V.
+
+        A0 is connected to the battery voltage * 0.4. The Arduino analogRead()
+        returns a 2^10 bit value. 5V / 1024 = 4.882mV/LSB.
+        So on A0;
+        100% : 7V * .4 = 2.8V / 4.882mV = 573
+        0%   : 5V * .4 = 2.0V / 4.882mV = 409
+    */
+
+    /* average 10 samples */
+    for(val = 0; val < 10; val++) {
+        adc += analogRead(A0);
+    }
+    adc = adc/10;
+
+    /* Convert ADC value to % */
+    if (adc > 573) {
+        val = 100;
+    } else if (adc < 409) {
+        val = 0;
+    } else {
+        val = (((adc - 409) * 100) / (573 - 409));
+    }
+
+    /* Show.... */
+    display.clearDisplay();
+    display.setFont(&FreeSans9pt7b);
+    display.setCursor(10,30);
+    display.setTextColor(WHITE);
+    display.print("Batterij ");
+    display.print(val, DEC);
+    display.print("%");
+    display.display();
+
+    delay(1000);
+}
+
 
 /******************************************************************************
  * Interrupt service routine. Called every second, count time 
@@ -211,7 +265,8 @@ void setup() {
     pinMode(D9, INPUT_PULLUP);
     pinMode(D10, INPUT_PULLUP);
     pinMode(D11, INPUT_PULLUP);
-    pinMode(D12, OUTPUT);               // "Gestart" LED
+    pinMode(D12, OUTPUT);
+    pinMode(A0, INPUT);
 
     noInterrupts();                     // disable all interrupts
     TCCR1A = 0;
@@ -230,6 +285,7 @@ void setup() {
     display.clearDisplay();
 
     showMeko74();
+    showBattery();
 }
 
 /******************************************************************************
