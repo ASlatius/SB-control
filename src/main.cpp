@@ -176,7 +176,18 @@ void updateDisplay()
         display.fillRect(0, 61, ((i*128)/LONGPRESS), 4, WHITE);
     }
 
-    display.display();    
+    display.display();
+}
+
+void showMeko74()
+{
+    display.setFont(&FreeSans9pt7b);
+    display.setCursor(25,30);
+    display.setTextColor(WHITE);
+    display.println("MEKO '74"); 
+    display.display();
+
+    delay(2000);
 }
 
 /******************************************************************************
@@ -217,6 +228,8 @@ void setup() {
     Wire.begin();                       // Initialize I2C
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // Initialize display
     display.clearDisplay();
+
+    showMeko74();
 }
 
 /******************************************************************************
